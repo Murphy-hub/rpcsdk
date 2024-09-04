@@ -2,6 +2,7 @@ package rpcsdk
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/Murphy-hub/rpcsdk/errors"
@@ -257,11 +258,14 @@ func (c *rpcClient) ParseCeo(out []byte, res interface{}) error {
 		return errors.InternalServerError("Response body Unmarshal error: " + err.Error()).WithBody(out)
 	}
 	if resCeo.C == 0 {
+		if res == nil {
+			return nil
+		}
 		if len(resCeo.O) != 2 {
 			return errors.InternalServerError("Remote service response information incomplete, expected length 2").WithBody(out)
 		}
 		// 解析响应数组第一个对象 - 业务异常信息
-		if resCeo.O[0] != nil && string(*resCeo.O[0]) != "null" {
+		if resCeo.O[0] != nil {
 			var ceoError CeoError
 			err = json.Unmarshal(*resCeo.O[0], &ceoError)
 			if err != nil {
@@ -280,7 +284,7 @@ func (c *rpcClient) ParseCeo(out []byte, res interface{}) error {
 		}
 
 		// 无业务响应信息
-		return errors.InternalServerError(resCeo.E + " - No business response information").WithBody(out)
+		return nil
 	} else {
 		// rpc调用层响应异常
 		return errors.InternalServerError(resCeo.E).WithBody(out)
@@ -321,4 +325,36 @@ func (c *rpcClient) Release() {
 	c.currentInfo = AppInfo{}
 	c.targetInfo = AppInfo{}
 	c.server = nil
+}
+
+// Call 新建一个 client 并请求解析响应
+func Call(ctx context.Context, params *RequestParameter, response interface{}) error {
+	cli, err := GetNewClient(http.Header{})
+	if err != nil {
+		return err
+	}
+	defer cli.Release()
+	res, err := cli.Call(params)
+	if err != nil {
+		return err
+	}
+	err = json.Unmarshal(res, &response)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// CallParse 新建一个client 请求并解析obj对象
+func CallParse(ctx context.Context, params *RequestParameter, response interface{}) error {
+	cli, err := GetNewClient(http.Header{})
+	if err != nil {
+		return err
+	}
+	defer cli.Release()
+	err = cli.CallParse(params, response)
+	if err != nil {
+		return err
+	}
+	return nil
 }
