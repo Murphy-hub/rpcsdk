@@ -252,11 +252,6 @@ func (c *rpcClient) ParseCeo(out []byte, res interface{}) error {
 		return errors.InternalServerError("Response body Unmarshal error: " + err.Error()).WithBody(out)
 	}
 
-	var resCmo ResultCMO
-	err = json.Unmarshal(out, &resCmo)
-	if err != nil {
-		return errors.InternalServerError("Response body Unmarshal error: " + err.Error()).WithBody(out)
-	}
 	if resCeo.C == 0 {
 		if res == nil {
 			return nil
