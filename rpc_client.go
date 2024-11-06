@@ -294,6 +294,9 @@ func (c *rpcClient) ParseCmo(out []byte, res interface{}) error {
 		return errors.InternalServerError("Response body Unmarshal error: " + err.Error()).WithBody(out)
 	}
 	if resCmo.Code == 0 {
+		if resCmo.Obj == nil {
+			return nil
+		}
 		// 解析业务数据
 		err = json.Unmarshal(*resCmo.Obj, &res)
 		if err != nil {
